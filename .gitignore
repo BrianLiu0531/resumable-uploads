@@ -1,0 +1,14 @@
+backend/.venv/
+backend/media/
+backend/staticfiles/
+backend/frontend_dist/
+__pycache__/
+*.pyc
+.pytest_cache/
+frontend/node_modules/
+frontend/*.tsbuildinfo
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.env

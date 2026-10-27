@@ -1,0 +1,27 @@
+# Render Blueprint: Dashboard → New → Blueprint → pick this repo.
+# Free plan: sleeps after 15 minutes idle, so the first request then takes about a minute.
+services:
+  - type: web
+    name: resumable-uploads
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /healthz
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: resumable-uploads.onrender.com,.onrender.com
+      - key: UPLOAD_STORAGE
+        value: s3
+      - key: AWS_REGION
+        value: ap-southeast-2
+      # Asked for when the Blueprint is created
+      - key: DATABASE_URL
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false

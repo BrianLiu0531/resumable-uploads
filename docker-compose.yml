@@ -1,0 +1,9 @@
+# Local PostgreSQL for development and tests
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: uploads
+    ports:
+      - "5440:5432"
