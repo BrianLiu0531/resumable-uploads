@@ -20,6 +20,8 @@ PATCH /files/<id>  Upload-Offset: 7340032  (rest of the file)      → 204 Uploa
 
 The client always asks the server where to continue, so an upload survives anything that interrupts it: a dropped connection, a paused upload, or a closed tab (tus-js-client remembers the upload URL per file).
 
+How much of an interrupted request is kept depends on what sits in front of the app. Served directly, the server keeps every byte that arrived. Behind a proxy that buffers request bodies, as Render's does, an aborted request never reaches the app, so only the in-flight chunk (5 MiB) is resent. Both cases are handled, and the live demo shows the second.
+
 Supported: core protocol plus the **creation**, **expiration**, **termination** and **checksum** (md5/sha1/sha256) extensions, and `X-HTTP-Method-Override` for proxies that block `PATCH`.
 
 ## The parts that are easy to get wrong
@@ -65,7 +67,9 @@ cd frontend && npm test
   - **two concurrent writers of the same chunk**
   - a crash between storage and commit, and between S3 completion and commit
   - per-client rate limits, the daily quota, IPs not stored, filename sanitising
-- **End to end, in Chrome:** a 12 MB file throttled to 1.5 MB/s, with the connection dropped at 30%. The server kept the 3.9 MB that had arrived, the client resumed from there, and the downloaded file's SHA-256 matched the original.
+- **End to end, in Chrome:** a 12 MB file throttled to 1.5 MB/s, with the connection dropped at 30%. Locally, the server kept the 3.9 MB that had arrived and the client resumed from there. On the live demo, the dropped chunk was resent. In both cases the object in S3 and the downloaded file had the original SHA-256.
+
+The first live run found a bug the tests had missed. Render sets `AWS_REGION`, but boto3 only reads `AWS_DEFAULT_REGION`, so presigned download URLs were signed for `us-east-1` and rejected by S3 (uploads still worked because S3 redirects). The region is now passed explicitly, and the S3 tests run with only `AWS_REGION` set and no local AWS config, as on Render. A test checks the region in the signature.
 
 ## Running locally
 

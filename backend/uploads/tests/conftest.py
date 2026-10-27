@@ -19,13 +19,22 @@ def storage(request, settings, tmp_path):
         settings.UPLOAD_DIR = tmp_path
         yield "local"
     else:
-        os.environ.update(AWS_ACCESS_KEY_ID="test", AWS_SECRET_ACCESS_KEY="test", AWS_DEFAULT_REGION="ap-southeast-2")
+        # Like Render: only AWS_REGION is set, which boto3 itself ignores
+        os.environ.update(AWS_ACCESS_KEY_ID="test", AWS_SECRET_ACCESS_KEY="test", AWS_REGION="ap-southeast-2")
+        os.environ.pop("AWS_DEFAULT_REGION", None)
+        # ...and no developer config or credentials files leaking a default region in
+        os.environ.update(AWS_CONFIG_FILE=str(tmp_path / "none"), AWS_SHARED_CREDENTIALS_FILE=str(tmp_path / "none"))
         with mock_aws():
-            boto3.client("s3").create_bucket(Bucket=BUCKET, CreateBucketConfiguration={"LocationConstraint": "ap-southeast-2"})
+            s3_client().create_bucket(Bucket=BUCKET, CreateBucketConfiguration={"LocationConstraint": "ap-southeast-2"})
+            settings.S3_REGION = "ap-southeast-2"
             settings.UPLOAD_STORAGE = "s3"
             settings.S3_BUCKET = BUCKET
             yield "s3"
     get_storage.cache_clear()
+
+
+def s3_client():
+    return boto3.client("s3", region_name="ap-southeast-2")
 
 
 class Tus:
@@ -77,8 +86,8 @@ def stored_bytes(storage_kind: str, upload) -> bytes:
     if storage_kind == "local":
         with get_storage().open(upload) as f:
             return f.read()
-    return boto3.client("s3").get_object(Bucket=BUCKET, Key=upload.storage_key)["Body"].read()
+    return s3_client().get_object(Bucket=BUCKET, Key=upload.storage_key)["Body"].read()
 
 
 def s3_keys() -> list[str]:
-    return [o["Key"] for o in boto3.client("s3").list_objects_v2(Bucket=BUCKET).get("Contents", [])]
+    return [o["Key"] for o in s3_client().list_objects_v2(Bucket=BUCKET).get("Contents", [])]

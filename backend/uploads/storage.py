@@ -88,11 +88,11 @@ class LocalStorage:
 
 
 class S3Storage:
-    def __init__(self, bucket: str, prefix: str, client=None):
+    def __init__(self, bucket: str, prefix: str, region: str, client=None):
         self.bucket = bucket
         self.prefix = prefix
         # SigV4 for presigned URLs (the older SigV2 is deprecated and missing in newer regions)
-        self.s3 = client or boto3.client("s3", config=Config(signature_version="s3v4"))
+        self.s3 = client or boto3.client("s3", region_name=region, config=Config(signature_version="s3v4"))
 
     def create(self, upload: Upload) -> None:
         upload.storage_key = f"{self.prefix}{upload.id}"
@@ -212,5 +212,5 @@ def get_storage() -> Storage:
     if settings.UPLOAD_STORAGE == "s3":
         if not settings.S3_BUCKET:
             raise RuntimeError("S3_BUCKET must be set when UPLOAD_STORAGE=s3")
-        return S3Storage(settings.S3_BUCKET, settings.S3_PREFIX)
+        return S3Storage(settings.S3_BUCKET, settings.S3_PREFIX, settings.S3_REGION)
     return LocalStorage(settings.UPLOAD_DIR)

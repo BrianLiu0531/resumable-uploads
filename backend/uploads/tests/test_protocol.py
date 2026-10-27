@@ -11,7 +11,7 @@ from django.utils import timezone
 from uploads.models import Upload
 from uploads.util import cleanup_expired
 
-from .conftest import s3_keys, stored_bytes
+from .conftest import s3_client, s3_keys, stored_bytes
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -111,10 +111,8 @@ def test_termination_removes_everything(tus, storage):
     assert tus.delete(url).status_code == 204
     assert tus.head(url).status_code == 404
     if storage == "s3":
-        import boto3
-
         assert s3_keys() == []
-        assert boto3.client("s3").list_multipart_uploads(Bucket="test-uploads").get("Uploads", []) == []
+        assert s3_client().list_multipart_uploads(Bucket="test-uploads").get("Uploads", []) == []
 
 
 def test_expired_uploads_are_gone_and_cleaned_up(tus, storage):
@@ -155,3 +153,5 @@ def test_download(tus, client, storage):
         assert resp["Content-Disposition"].startswith("attachment;")
     else:
         assert resp.status_code == 302 and "X-Amz-Signature" in resp["Location"]
+        # The signature is scoped to the bucket's region; a default of us-east-1 is rejected by S3
+        assert "%2Fap-southeast-2%2Fs3%2Faws4_request" in resp["Location"]

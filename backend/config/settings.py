@@ -81,6 +81,8 @@ UPLOAD_STORAGE = os.getenv("UPLOAD_STORAGE", "local")
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", BASE_DIR / "media"))
 S3_BUCKET = os.getenv("S3_BUCKET", "")
 S3_PREFIX = os.getenv("S3_PREFIX", "uploads/")
+# boto3 reads AWS_DEFAULT_REGION but not AWS_REGION; presigned URLs embed the region, so be explicit
+S3_REGION = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "ap-southeast-2"
 
 MAX_UPLOAD_SIZE = env_int("MAX_UPLOAD_SIZE", 50 * 1024 * 1024)  # per file
 MAX_CHUNK_SIZE = env_int("MAX_CHUNK_SIZE", 16 * 1024 * 1024)  # per PATCH request
