@@ -155,3 +155,4 @@ def test_download(tus, client, storage):
         assert resp.status_code == 302 and "X-Amz-Signature" in resp["Location"]
         # The signature is scoped to the bucket's region; a default of us-east-1 is rejected by S3
         assert "%2Fap-southeast-2%2Fs3%2Faws4_request" in resp["Location"]
+        assert ".s3.ap-southeast-2.amazonaws.com/" in resp["Location"]  # not the global endpoint

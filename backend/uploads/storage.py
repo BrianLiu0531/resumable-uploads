@@ -91,8 +91,14 @@ class S3Storage:
     def __init__(self, bucket: str, prefix: str, region: str, client=None):
         self.bucket = bucket
         self.prefix = prefix
-        # SigV4 for presigned URLs (the older SigV2 is deprecated and missing in newer regions)
-        self.s3 = client or boto3.client("s3", region_name=region, config=Config(signature_version="s3v4"))
+        # Presigned URLs embed the region in their SigV4 signature, and botocore otherwise signs them for
+        # the global s3.amazonaws.com endpoint, which S3 treats as us-east-1. Pin the regional endpoint.
+        self.s3 = client or boto3.client(
+            "s3",
+            region_name=region,
+            endpoint_url=f"https://s3.{region}.amazonaws.com",
+            config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+        )
 
     def create(self, upload: Upload) -> None:
         upload.storage_key = f"{self.prefix}{upload.id}"
