@@ -69,7 +69,7 @@ cd frontend && npm test
   - per-client rate limits, the daily quota, IPs not stored, filename sanitising
 - **End to end, in Chrome:** a 12 MB file throttled to 1.5 MB/s, with the connection dropped at 30%. Locally, the server kept the 3.9 MB that had arrived and the client resumed from there. On the live demo, the dropped chunk was resent. In both cases the object in S3 and the downloaded file had the original SHA-256.
 
-The first live run found a bug the tests had missed. Render sets `AWS_REGION`, but boto3 only reads `AWS_DEFAULT_REGION`, so presigned download URLs were signed for `us-east-1` and rejected by S3 (uploads still worked because S3 redirects). The region is now passed explicitly, and the S3 tests run with only `AWS_REGION` set and no local AWS config, as on Render. A test checks the region in the signature.
+The first live run found a bug the tests had missed. Render sets `AWS_REGION`, but boto3 only reads `AWS_DEFAULT_REGION`, so presigned download URLs were signed for `us-east-1` and rejected by S3 (uploads still worked because S3 redirects). Fixing that exposed a second problem: botocore presigns against the global `s3.amazonaws.com` endpoint, which S3 treats as `us-east-1` whatever the signature says. The client now pins the regional endpoint, which was verified against real S3. The S3 tests run with only `AWS_REGION` set and no local AWS config, as on Render, and check both the signature's region and the endpoint.
 
 ## Running locally
 
